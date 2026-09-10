@@ -54,42 +54,50 @@ export default function Home() {
   return (
     <div className="bg-white">
       {/* HERO */}
-      <section ref={heroRef} className="relative min-h-screen h-screen flex items-center overflow-hidden" style={{ minHeight: '100vh', height: '100vh' }}>
-        <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover"
+      <section ref={heroRef} className="relative min-h-screen h-screen flex items-center overflow-hidden bg-slate-950" style={{ minHeight: '100vh', height: '100vh' }}>
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          disablePictureInPicture
+          className="absolute inset-0 w-full h-full object-cover"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          poster="https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=1920&q=60">
+        >
+          <source src="/hero-video.mp4" type="video/mp4"/>
           <source src={HERO_VIDEO} type="video/mp4"/>
         </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/65 via-slate-900/40 to-slate-950/80 pointer-events-none"/>
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-900/40 to-slate-950/80 pointer-events-none"/>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(2,132,199,0.25),transparent_60%)] pointer-events-none"/>
 
-        <div className="relative max-w-[1400px] mx-auto px-6 lg:px-10 pt-20 pb-12 w-full flex-1 flex flex-col justify-center">
+        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 pt-20 pb-12 w-full flex-1 flex flex-col justify-center">
           <div className="max-w-4xl">
-            <div className="hero-tag inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/50 backdrop-blur-md border border-white/20 text-white/90 text-[11px] font-semibold tracking-[0.18em] mb-6">
+            <div className="hero-tag inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/20 text-white/90 text-[10px] sm:text-[11px] font-semibold tracking-[0.18em] mb-4 sm:mb-6">
               <Sparkles className="w-3.5 h-3.5 text-sky-300"/> AI-POWERED FLOOD INTELLIGENCE
             </div>
-            <h1 className="hero-title text-white font-serif tracking-tight leading-[1.04]" style={{ fontFamily: "'Fraunces', serif" }}>
-              <span className="block text-5xl md:text-7xl lg:text-[84px] font-semibold">Predict the Rain.</span>
-              <span className="block text-5xl md:text-7xl lg:text-[84px] font-semibold">Understand the Flood.</span>
-              <span className="block text-5xl md:text-7xl lg:text-[84px] font-semibold text-sky-300">Protect What Matters.</span>
+            <h1 className="hero-title text-white font-serif tracking-tight leading-[1.06]" style={{ fontFamily: "'Fraunces', serif" }}>
+              <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[84px] font-semibold">Predict the Rain.</span>
+              <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[84px] font-semibold">Understand the Flood.</span>
+              <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[84px] font-semibold text-sky-300">Protect What Matters.</span>
             </h1>
-            <p className="hero-sub mt-6 text-white/85 text-lg md:text-xl max-w-2xl leading-relaxed font-normal">
+            <p className="hero-sub mt-4 sm:mt-6 text-white/85 text-base sm:text-lg md:text-xl max-w-2xl leading-relaxed font-normal">
               HydroSense AI combines weather, radar, satellite, NWP, terrain and geospatial information to predict heavy rainfall,
               estimate inundation and support faster disaster-response decisions.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <Link to="/dashboard">
-                <Button size="lg" className="hero-cta bg-white text-slate-950 hover:bg-slate-100 h-12 px-6 rounded-full font-semibold text-sm shadow-lg">
+                <Button size="lg" className="hero-cta bg-white text-slate-950 hover:bg-slate-100 h-11 sm:h-12 px-6 rounded-full font-semibold text-sm shadow-lg w-full sm:w-auto">
                   Launch Command Center <ArrowRight className="w-4 h-4 ml-2"/>
                 </Button>
               </Link>
               <a href="#story">
-                <Button size="lg" variant="outline" className="hero-cta h-12 px-6 rounded-full border border-white/25 text-white bg-white/5 hover:bg-white/15 hover:text-white backdrop-blur-sm font-medium text-sm">
+                <Button size="lg" variant="outline" className="hero-cta h-11 sm:h-12 px-6 rounded-full border border-white/25 text-white bg-white/5 hover:bg-white/15 hover:text-white backdrop-blur-sm font-medium text-sm w-full sm:w-auto">
                   Explore Platform
                 </Button>
               </a>
             </div>
-            <div className="hero-cta mt-8 text-xs text-white/60 tracking-wider">
+            <div className="hero-cta mt-6 sm:mt-8 text-[11px] sm:text-xs text-white/60 tracking-wider">
               — Illustrative flood footage • India-wide GIS platform • SIH 2026
             </div>
           </div>
@@ -112,7 +120,7 @@ export default function Home() {
               Fragmented weather, radar, satellite, NWP and GIS information makes it difficult to understand
               <span className="text-slate-900 font-medium"> where rainfall will actually cause flooding</span> — and how severe it will be.
             </p>
-            <div className="mt-8 grid grid-cols-3 gap-4">
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[{n:'42%',l:'annual monsoon variability'},{n:'₹ 87Kcr',l:'yearly flood damages'},{n:'6.8Cr',l:'people impacted / year'}].map((k,i) => (
                 <div key={i} className="border-l-2 border-sky-500 pl-4">
                   <div className="text-2xl md:text-3xl font-semibold text-slate-900 tracking-tight">{k.n}</div>
@@ -129,11 +137,11 @@ export default function Home() {
         <div className="max-w-[1200px] mx-auto px-6 lg:px-10">
           <div className="reveal text-center max-w-2xl mx-auto mb-14">
             <div className="text-[11px] font-semibold text-sky-700 tracking-[0.18em] mb-3">02 — MULTI-SOURCE DATA FUSION</div>
-            <h2 className="font-serif text-4xl md:text-5xl text-slate-900 leading-tight">One brain. Every signal.</h2>
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-slate-900 leading-tight">One brain. Every signal.</h2>
             <p className="mt-4 text-slate-600">Weather + Radar + Satellite + NWP + Terrain + Historical converge into a single intelligence layer.</p>
           </div>
 
-          <div className="grid md:grid-cols-6 gap-3 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-10">
             {[
               { Icon: Cloud, label: 'Weather' },
               { Icon: Radar, label: 'Radar' },
@@ -269,7 +277,7 @@ export default function Home() {
             <div className="text-[11px] font-semibold text-sky-700 tracking-[0.18em] mb-3">06 — IMPACT</div>
             <h2 className="font-serif text-4xl md:text-5xl text-slate-900 leading-tight">Built for decisions that save lives.</h2>
           </div>
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { Icon: TrendingUp, t: 'Earlier warning', d: 'Hours of lead time before flooding.' },
               { Icon: Map, t: 'Location-specific risk', d: 'Ward-level flood zones.' },
@@ -291,9 +299,9 @@ export default function Home() {
         <div className="max-w-[1200px] mx-auto px-6 lg:px-10">
           <div className="reveal mb-10">
             <div className="text-[11px] font-semibold text-sky-700 tracking-[0.18em] mb-3">07 — USE CASES</div>
-            <h2 className="font-serif text-4xl md:text-5xl text-slate-900 leading-tight max-w-3xl">One platform. Many command rooms.</h2>
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-slate-900 leading-tight max-w-3xl">One platform. Many command rooms.</h2>
           </div>
-          <div className="grid md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {['District Administration','Disaster Management','Municipalities','Emergency Response','Infrastructure Operators'].map((u,i) => (
               <div key={i} className="reveal border border-slate-200 rounded-lg p-5 hover:border-sky-300 hover:bg-sky-50/30 transition">
                 <div className="text-sky-700 text-xs font-semibold tracking-wider">0{i+1}</div>

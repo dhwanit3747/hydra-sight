@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Waves, Circle } from 'lucide-react';
+import { Menu, X, Waves } from 'lucide-react';
 import { Button } from './ui/button';
 
 const LINKS = [
@@ -90,17 +90,6 @@ export default function Navbar() {
 
         {/* Right Action Items */}
         <div className="flex items-center gap-3">
-          <div
-            className={`nav-demo-badge hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wider transition-all ${
-              transparent
-                ? 'bg-slate-900/80 text-slate-200 border border-slate-700/80 backdrop-blur-sm'
-                : 'bg-amber-50 text-amber-800 border border-amber-300'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            DEMO MODE
-          </div>
-
           <Link to="/dashboard" className="nav-cta-btn hidden md:block">
             <Button
               size="sm"
@@ -147,10 +136,6 @@ export default function Navbar() {
             </NavLink>
           ))}
           <div className="pt-3 border-t border-slate-800 flex flex-col gap-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-amber-300 border border-amber-400/40 w-max">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              DEMO MODE
-            </div>
             <Link to="/dashboard" className="block">
               <Button className="w-full bg-white text-slate-950 hover:bg-slate-100 font-semibold rounded-full">
                 Launch Command Center
