@@ -98,7 +98,7 @@ export default function Home() {
               </a>
             </div>
             <div className="hero-cta mt-6 sm:mt-8 text-[11px] sm:text-xs text-white/60 tracking-wider">
-              — Illustrative flood footage • India-wide GIS platform • SIH 2026
+              — Illustrative flood footage • India-wide GIS platform
             </div>
           </div>
         </div>

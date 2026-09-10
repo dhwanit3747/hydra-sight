@@ -15,7 +15,7 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Enable CORS for Vite frontend
+# Enable CORS for Vite frontend & Vercel deployments
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -24,6 +24,7 @@ app.add_middleware(
         "http://localhost:5173",
         "https://flood-predict-india.preview.emergentagent.com",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
