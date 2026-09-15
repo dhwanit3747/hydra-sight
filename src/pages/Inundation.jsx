@@ -6,6 +6,7 @@ import MapView from '../components/MapView';
 import { DemoBadge, RiskBadge } from '../components/DemoBadge';
 import { api } from '../services/api';
 import { Play, Droplets, Mountain, Layers } from 'lucide-react';
+import { getIMDRainfallCategory } from '../utils/imdStandard';
 
 const STEPS = ['Loading terrain grid', 'Computing runoff', 'Simulating inundation', 'Overlaying infrastructure', 'Ready'];
 
@@ -19,6 +20,8 @@ export default function Inundation() {
   const [running, setRunning] = useState(false);
   const [step, setStep] = useState(0);
   const [result, setResult] = useState(null);
+
+  const imdCat = getIMDRainfallCategory(rainfall);
 
   const run = async () => {
     setRunning(true); setResult(null); setStep(0);
@@ -36,7 +39,7 @@ export default function Inundation() {
           <div>
             <div className="text-[11px] font-semibold text-sky-700 tracking-[0.18em] mb-2">INUNDATION MODELING</div>
             <h1 className="font-serif text-3xl md:text-4xl text-slate-900 tracking-tight">Flood Extent Prediction</h1>
-            <p className="text-sm text-slate-500 mt-1">Terrain + hydrology + drainage — modeled in real time.</p>
+            <p className="text-sm text-slate-500 mt-1">Terrain + hydrology + drainage — modeled in real time using IMD standards.</p>
           </div>
           <DemoBadge label="OPERATIONAL MODEL" tone="green"/>
         </div>
@@ -44,12 +47,17 @@ export default function Inundation() {
         <div className="grid lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white rounded-lg border border-slate-200 p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Layers className="w-4 h-4 text-sky-600"/>
-                <h3 className="text-sm font-semibold text-slate-900">Input Parameters</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-sky-600"/>
+                  <h3 className="text-sm font-semibold text-slate-900">Input Parameters</h3>
+                </div>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${imdCat.colorClass}`}>
+                  IMD: {imdCat.category}
+                </span>
               </div>
               <div className="space-y-5">
-                <ScenarioSlider label="RAINFALL" value={rainfall} onChange={setRainfall} min={0} max={300} unit="mm"/>
+                <ScenarioSlider label="RAINFALL" value={rainfall} onChange={setRainfall} min={0} max={300} unit="mm" hint={imdCat.hint}/>
                 <ScenarioSlider label="DURATION" value={duration} onChange={setDuration} min={1} max={24} unit="h"/>
                 <ScenarioSlider label="TERRAIN SLOPE" value={slope} onChange={setSlope} min={0} max={30} unit="°"/>
                 <ScenarioSlider label="SOIL SATURATION" value={soil} onChange={setSoil} min={0} max={100} unit="%"/>

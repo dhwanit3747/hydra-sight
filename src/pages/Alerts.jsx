@@ -175,7 +175,7 @@ export default function Alerts() {
             ))
           ) : (
             <>
-              {filtered.map(a => <AlertCard key={a.id} alert={a} onRefresh={loadAlerts}/>)}
+              {filtered.map(a => <AlertCard key={a.id} alert={a} onRemove={(id) => setAlerts(current => current.filter(item => item.id !== id))}/>)}
               {filtered.length === 0 && (
                 <div className="text-center py-16 text-slate-500 bg-white border border-slate-200 rounded-lg">No alerts at this level.</div>
               )}

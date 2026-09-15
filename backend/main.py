@@ -1,6 +1,10 @@
 import time
 import httpx
 import uvicorn
+import os
+import smtplib
+from email.message import EmailMessage
+from pymongo import MongoClient
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
@@ -9,6 +13,18 @@ from dotenv import load_dotenv
 
 # Load environment configuration from .env
 load_dotenv()
+
+mongo_client = MongoClient(os.getenv("MONGODB_URI", "mongodb://127.0.0.1:27017"), serverSelectionTimeoutMS=1500)
+mongo_db = mongo_client[os.getenv("MONGODB_DATABASE", "hydrasense")]
+alerts_collection = mongo_db[os.getenv("MONGODB_ALERTS_COLLECTION", "alerts")]
+dismissed_alerts_collection = mongo_db[os.getenv("MONGODB_DISMISSED_COLLECTION", "dismissed_alerts")]
+
+def mongo_is_available() -> bool:
+    try:
+        mongo_client.admin.command("ping")
+        return True
+    except Exception:
+        return False
 
 from services.weather_service import weather_service, STATIONS_CONFIG
 from services.flood_engine import flood_engine
@@ -253,17 +269,72 @@ async def get_alerts():
     stations = await weather_service.get_all_stations_telemetry()
     zones = await weather_service.get_live_inundation_zones()
     imd_warnings = await imd_service.get_district_warnings(max_features=10)
-    return alert_engine.generate_alerts(stations, zones, imd_warnings)
+    generated_alerts = alert_engine.generate_alerts(stations, zones, imd_warnings)
+    if not mongo_is_available():
+        return generated_alerts
+
+    for alert in generated_alerts:
+        alert_id = alert["id"]
+        if not dismissed_alerts_collection.find_one({"alert_id": alert_id}):
+            alerts_collection.update_one(
+                {"_id": alert_id},
+                {"$setOnInsert": {**alert, "_id": alert_id}},
+                upsert=True,
+            )
+    return list(alerts_collection.find({}, {"_id": 0}))
 
 @app.post("/api/alerts/dispatch")
 async def dispatch_alert(body: Dict[str, Any] = {}):
-    """Dispatch an alert via SMS/Email/NDMA system"""
+    """Dispatch an alert and send email when SMTP credentials are configured."""
+    alert_id = body.get("alert_id") or body.get("alert", {}).get("id")
+    if alert_id and mongo_is_available():
+        alerts_collection.delete_one({"_id": alert_id})
+        dismissed_alerts_collection.update_one(
+            {"alert_id": alert_id},
+            {"$setOnInsert": {"alert_id": alert_id, "dismissed_at": datetime.now(timezone.utc)}},
+            upsert=True,
+        )
+    target_email = body.get("email", "dhwanitchudasama190425@gmail.com")
+    email_status = "NOT_REQUESTED"
+    if "email" in [str(channel).lower() for channel in body.get("channels", [])]:
+        smtp_host = os.getenv("SMTP_HOST")
+        smtp_user = os.getenv("SMTP_USER")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+        if smtp_host and smtp_user and smtp_password:
+            message = EmailMessage()
+            message["Subject"] = f"HydroSense flood alert: {body.get('location', 'National Network')}"
+            message["From"] = os.getenv("SMTP_FROM", smtp_user)
+            message["To"] = target_email
+            message.set_content(str(body.get("alert", "HydroSense flood alert")))
+            try:
+                with smtplib.SMTP(smtp_host, int(os.getenv("SMTP_PORT", "587")), timeout=20) as smtp:
+                    smtp.starttls()
+                    smtp.login(smtp_user, smtp_password)
+                    smtp.send_message(message)
+                email_status = "SENT"
+            except Exception as exc:
+                email_status = "FAILED"
+                return {
+                    "status": "FAILED",
+                    "message_id": f"MSG-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                    "channels": body.get("channels", ["email"]),
+                    "location": body.get("location", "National Network"),
+                    "email": target_email,
+                    "email_status": email_status,
+                    "error": str(exc),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+        else:
+            email_status = "SMTP_NOT_CONFIGURED"
+
     return {
-        "status": "DISPATCHED",
+        "status": "DISPATCHED" if email_status == "SENT" else "QUEUED",
         "message_id": f"MSG-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
         "channels": body.get("channels", ["SMS", "Email", "NDMA Portal"]),
         "recipients": body.get("recipients", 142),
         "location": body.get("location", "National Network"),
+        "email": target_email,
+        "email_status": email_status,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 

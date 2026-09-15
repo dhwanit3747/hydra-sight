@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, AlertCircle, Info, CheckCircle2, MapPin, Clock, Map, Bell } from 'lucide-react';
 import { Button } from './ui/button';
+import { api } from '../services/api';
 
 const styles = {
   CRITICAL: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', dot: 'bg-red-500', icon: AlertTriangle },
@@ -28,7 +29,7 @@ function getMapUrl(location) {
   return `https://www.openstreetmap.org/search?query=${encodeURIComponent(location)}`;
 }
 
-export default function AlertCard({ alert, onRefresh }) {
+export default function AlertCard({ alert, onRemove }) {
   const [ackStatus, setAckStatus] = useState(alert.status);
   const [alertGenerated, setAlertGenerated] = useState(false);
 
@@ -41,9 +42,16 @@ export default function AlertCard({ alert, onRefresh }) {
     // In a real system this would call an API
   };
 
-  const generateAlert = () => {
+  const generateAlert = async () => {
     setAlertGenerated(true);
-    setTimeout(() => setAlertGenerated(false), 3000);
+    await api.dispatchAlert({
+      alert_id: alert.id,
+      location: alert.location,
+      alert,
+      channels: ['email'],
+      email: 'dhwanitchudasama190425@gmail.com',
+    });
+    onRemove?.(alert.id);
   };
 
   return (

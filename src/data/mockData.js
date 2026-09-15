@@ -67,6 +67,8 @@ export const INUNDATION_ZONES = [
     coords: [[26.35, 91.55], [26.48, 91.85], [26.25, 92.05], [26.05, 91.90], [26.10, 91.60]] },
   { id: 'i4', name: 'Ganga-Kosi Confluence', level: 'MODERATE', prob: 0.58, area: 62.5,
     coords: [[25.75, 87.10], [25.90, 87.40], [25.65, 87.55], [25.50, 87.35]] },
+  { id: 'i5', name: 'Periyar-Vembanad Basin', level: 'MODERATE', prob: 0.46, area: 41.2,
+    coords: [[10.12, 76.22], [10.18, 76.45], [10.05, 76.52], [9.85, 76.42], [9.88, 76.25]] },
 ];
 
 // Critical infrastructure markers

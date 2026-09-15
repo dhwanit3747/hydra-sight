@@ -25,6 +25,17 @@ function Recenter({ center, zoom }) {
   return null;
 }
 
+function FitSimulationBounds({ zones }) {
+  const map = useMap();
+  useEffect(() => {
+    const points = zones.flatMap((zone) => zone.coords || []);
+    if (points.length) {
+      map.fitBounds(points, { padding: [36, 36], maxZoom: 8, duration: 0.8 });
+    }
+  }, [map, zones]);
+  return null;
+}
+
 export default function MapView({
   height = 520,
   center = INDIA_CENTER,
@@ -41,6 +52,8 @@ export default function MapView({
   const mapRef = useRef();
   const stationsData = liveStations || STATIONS;
   const zonesData = (simulation && simulation.zones) ? simulation.zones : (liveZones || INUNDATION_ZONES);
+  const simulatedArea = zonesData.reduce((total, zone) => total + Number(zone.area || 0), 0);
+  const simulatedProbability = zonesData.length ? Math.max(...zonesData.map((zone) => Number(zone.prob || 0))) : 0;
 
   return (
     <div className={`relative w-full rounded-lg overflow-hidden border border-slate-200 ${className}`} style={{ height }}>
@@ -51,6 +64,7 @@ export default function MapView({
         ref={mapRef}
       >
         <Recenter center={center} zoom={zoom} />
+        {simulation && <FitSimulationBounds zones={zonesData} />}
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -78,14 +92,15 @@ export default function MapView({
           )}
 
           {showInundation && (
-            <LayersControl.Overlay checked name="Predicted Inundation">
+            <LayersControl.Overlay checked name={simulation ? 'Affected Area (Simulation)' : 'Predicted Inundation'}>
               <LayerGroup>
                 {zonesData.map((z) => (
                   <Polygon key={z.id} positions={z.coords}
-                    pathOptions={{ color: riskColor[z.level], fillColor: riskColor[z.level], fillOpacity: 0.28, weight: 2, dashArray: '4 4' }}>
+                    pathOptions={{ color: riskColor[z.level], fillColor: riskColor[z.level], fillOpacity: simulation ? 0.48 : 0.28, weight: simulation ? 3 : 2, dashArray: simulation ? undefined : '4 4' }}>
                     <Popup>
                       <div className="text-xs">
                         <div className="font-semibold text-sm mb-1">{z.name}</div>
+                        {simulation && <div className="font-semibold text-sky-700 mb-1">Affected area in this simulation</div>}
                         <div>Level: <span className="font-semibold">{z.level}</span></div>
                         <div>Probability: {(z.prob * 100).toFixed(0)}%</div>
                         <div>Predicted area: {z.area} km²</div>
@@ -156,8 +171,15 @@ export default function MapView({
           ? 'bg-sky-50/95 border-sky-200 text-sky-700'
           : 'bg-emerald-50/95 border-emerald-200 text-emerald-700'
       }`}>
-        {simulation ? `SIMULATED • ${Math.round((simulation.probability||0)*100)}% • ${simulation.areaKm2||0} km²` : 'LIVE GIS TELEMETRY • ACTIVE MONITORING'}
+        {simulation ? `SIMULATED • ${Math.round(simulatedProbability * 100)}% • ${simulatedArea.toFixed(1)} km² COVERED` : 'LIVE GIS TELEMETRY • ACTIVE MONITORING'}
       </div>
+      {simulation && (
+        <div className="absolute top-12 left-3 z-[400] rounded-md border border-sky-200 bg-white/95 px-3 py-2 shadow-sm">
+          <div className="text-[9px] font-semibold tracking-[0.14em] text-slate-500">SIMULATION MAP COVERAGE</div>
+          <div className="mt-1 text-base font-semibold text-slate-900 tabular-nums">{simulatedArea.toFixed(1)} km²</div>
+          <div className="text-[10px] text-slate-500">{zonesData.length} basin zone{zonesData.length === 1 ? '' : 's'} displayed</div>
+        </div>
+      )}
     </div>
   );
 }

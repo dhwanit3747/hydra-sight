@@ -6,6 +6,22 @@ import {
 } from '../../data/mockData';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '');
+const DISMISSED_ALERTS_KEY = 'hydrasense.dismissed-alerts';
+
+function getDismissedAlertIds() {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_ALERTS_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function rememberDismissedAlert(alertId) {
+  if (!alertId) return;
+  const ids = new Set(getDismissedAlertIds());
+  ids.add(alertId);
+  localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify([...ids]));
+}
 
 async function fetchFromBackend(endpoint, fallbackData) {
   try {
@@ -81,10 +97,13 @@ export const api = {
   },
 
   async getAlerts() {
-    return await fetchFromBackend('/api/alerts', ALERTS);
+    const alerts = await fetchFromBackend('/api/alerts', ALERTS);
+    const dismissed = new Set(getDismissedAlertIds());
+    return alerts.filter((alert) => !dismissed.has(alert.id));
   },
 
   async dispatchAlert(payload = {}) {
+    rememberDismissedAlert(payload.alert_id || payload.alert?.id);
     try {
       const res = await fetch(`${BACKEND_URL}/api/alerts/dispatch`, {
         method: 'POST',
@@ -97,11 +116,13 @@ export const api = {
     }
     // Fallback
     return {
-      status: 'DISPATCHED',
+      status: 'QUEUED',
       message_id: `MSG-${Date.now()}`,
-      channels: ['SMS', 'Email', 'NDMA Portal'],
+      channels: payload.channels || ['email'],
       recipients: payload.recipients || 142,
       location: payload.location || 'National Network',
+      email: payload.email || 'dhwanitchudasama190425@gmail.com',
+      email_status: 'BACKEND_UNAVAILABLE',
       timestamp: new Date().toISOString(),
     };
   },
@@ -147,14 +168,66 @@ export const api = {
     } catch (err) {
       console.warn('Backend inundation prediction fallback:', err);
     }
-    const base = input?.rainfall ?? 150;
-    const prob = Math.min(0.98, 0.35 + base / 400);
-    const risk = prob > 0.80 ? 'CRITICAL' : prob > 0.55 ? 'HIGH' : prob > 0.25 ? 'MODERATE' : 'LOW';
+    const base = Number(input?.rainfall ?? 150);
+    const duration = Number(input?.duration ?? 12);
+    const soil = Number(input?.soil ?? 65);
+    const drainage = Number(input?.drainage ?? 50);
+
+    // Calculate IMD 24h rainfall standard category
+    let imdCategory = 'Light Rain';
+    let risk = 'LOW';
+    let prob = 0.20;
+
+    if (base >= 204.5) {
+      imdCategory = 'Extremely Heavy Rain';
+      risk = 'CRITICAL';
+      prob = Math.min(0.98, 0.82 + (base - 204.5) / 1000);
+    } else if (base >= 115.6) {
+      imdCategory = 'Very Heavy Rain';
+      risk = 'HIGH';
+      prob = Math.min(0.82, 0.65 + (base - 115.6) / 500);
+    } else if (base >= 64.5) {
+      imdCategory = 'Heavy Rain';
+      risk = 'HIGH';
+      prob = Math.min(0.65, 0.45 + (base - 64.5) / 300);
+    } else if (base >= 15.6) {
+      imdCategory = 'Moderate Rain';
+      risk = 'MODERATE';
+      prob = Math.min(0.45, 0.22 + (base - 15.6) / 200);
+    } else {
+      imdCategory = 'Light Rain';
+      risk = 'LOW';
+      prob = Math.min(0.22, 0.08 + base / 100);
+    }
+
+    const probability = Math.min(0.98, Math.max(0.05,
+      prob + ((duration - 12) * 0.004) + ((soil - 65) * 0.002) - ((drainage - 50) * 0.002)
+    ));
+    const areaKm2 = Math.max(18, +(45 + base * 1.4 + duration * 1.2 + soil * 0.35 - drainage * 0.3).toFixed(1));
+    const scale = base < 15.6 ? 0.62 : base < 64.5 ? 0.88 : 1.12;
+    const zoneShares = [0.30, 0.22, 0.17, 0.14, 0.17];
+    const maxZoneProbability = risk === 'LOW' ? 0.25 : risk === 'MODERATE' ? 0.55 : risk === 'HIGH' ? 0.8 : 0.98;
+    const zones = INUNDATION_ZONES.map((zone, index) => {
+      const center = zone.coords.reduce((sum, point) => [sum[0] + point[0], sum[1] + point[1]], [0, 0]).map((value) => value / zone.coords.length);
+      const coords = zone.coords.map(([lat, lng]) => [
+        +(center[0] + (lat - center[0]) * scale).toFixed(6),
+        +(center[1] + (lng - center[1]) * scale).toFixed(6),
+      ]);
+      const zoneProbability = Math.min(maxZoneProbability, Math.max(0.05, +(probability * (1 + (index - 1.5) * 0.06)).toFixed(2)));
+      const zoneRisk = zoneProbability > 0.8 ? 'CRITICAL' : zoneProbability > 0.55 ? 'HIGH' : zoneProbability > 0.25 ? 'MODERATE' : 'LOW';
+      return { ...zone, coords, prob: zoneProbability, level: zoneRisk, area: +(areaKm2 * zoneShares[index]).toFixed(1) };
+    });
+
     return {
-      probability: prob,
-      areaKm2: +(80 + base * 1.4).toFixed(1),
+      probability: +probability.toFixed(2),
+      areaKm2,
       risk,
-      zones: INUNDATION_ZONES,
+      imd: {
+        category: imdCategory,
+        risk,
+        rainfall_mm: base
+      },
+      zones,
       mode: 'OPERATIONAL',
     };
   },

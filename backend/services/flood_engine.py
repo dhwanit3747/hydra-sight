@@ -82,6 +82,29 @@ BASIN_REGIONS = [
     }
 ]
 
+def get_imd_rainfall_category(rainfall_mm: float) -> Dict[str, str]:
+    """
+    India Meteorological Department (IMD) Standard 24-Hour Rainfall Intensity Classification:
+    - Very Light Rain: 0.1 to 2.4 mm (LOW risk)
+    - Light Rain: 2.5 to 15.5 mm (LOW risk)
+    - Moderate Rain: 15.6 to 64.4 mm (MODERATE risk)
+    - Heavy Rain: 64.5 to 115.5 mm (HIGH risk)
+    - Very Heavy Rain: 115.6 to 204.4 mm (HIGH risk)
+    - Extremely Heavy Rain: >= 204.5 mm (CRITICAL risk)
+    """
+    if rainfall_mm < 2.5:
+        return {"code": "VERY_LIGHT", "category": "Very Light Rain", "risk": "LOW", "range": "0.1–2.4 mm"}
+    elif rainfall_mm <= 15.5:
+        return {"code": "LIGHT", "category": "Light Rain", "risk": "LOW", "range": "2.5–15.5 mm"}
+    elif rainfall_mm <= 64.4:
+        return {"code": "MODERATE", "category": "Moderate Rain", "risk": "MODERATE", "range": "15.6–64.4 mm"}
+    elif rainfall_mm <= 115.5:
+        return {"code": "HEAVY", "category": "Heavy Rain", "risk": "HIGH", "range": "64.5–115.5 mm"}
+    elif rainfall_mm <= 204.4:
+        return {"code": "VERY_HEAVY", "category": "Very Heavy Rain", "risk": "HIGH", "range": "115.6–204.4 mm"}
+    else:
+        return {"code": "EXTREMELY_HEAVY", "category": "Extremely Heavy Rain", "risk": "CRITICAL", "range": "≥ 204.5 mm"}
+
 class FloodEngine:
     def __init__(self):
         self._init_ml_model()
@@ -179,36 +202,40 @@ class FloodEngine:
         prob = max(0.05, min(0.98, prob))
 
         hydro = self.calculate_hydrological_runoff(rainfall, duration, slope, soil, drainage, land_cover)
+        imd_info = get_imd_rainfall_category(rainfall)
 
         # Inundated area calculation (km2)
         base_area = 55.0
         area = round(float(base_area + (rainfall * 1.6) + (soil * 0.85) - (drainage * 0.55) - (slope * 2.2)), 1)
         area = max(18.0, area)
 
-        # Determine risk level
-        if prob > 0.80 or area > 300.0:
+        # Ground risk level in IMD rainfall standards fused with runoff probability & area
+        if rainfall >= 204.5 or prob > 0.82 or area > 300.0:
             risk = "CRITICAL"
-        elif prob > 0.55 or area > 180.0:
+        elif rainfall >= 64.5 or prob > 0.55 or area > 180.0:
             risk = "HIGH"
-        elif prob > 0.25 or area > 80.0:
+        elif rainfall >= 15.6 or prob > 0.25 or area > 80.0:
             risk = "MODERATE"
         else:
             risk = "LOW"
 
-        # Polygon scale factor: baseline = 1.0 (at 120 mm rain). Expands with higher rain & saturation
-        scale_factor = max(0.65, min(1.85, 0.75 + (rainfall / 220.0) * 0.65 + (soil / 100.0) * 0.35 - (drainage / 100.0) * 0.25))
+        # Keep map footprint proportional to the IMD rainfall band.
+        scale_factor = 0.62 if rainfall < 15.6 else 0.88 if rainfall < 64.5 else 1.12
+        zone_shares = [0.30, 0.22, 0.17, 0.14, 0.17]
+        max_zone_probability = 0.25 if risk == "LOW" else 0.55 if risk == "MODERATE" else 0.80 if risk == "HIGH" else 0.98
+        min_zone_probability = 0.05 if risk == "LOW" else 0.26 if risk == "MODERATE" else 0.56 if risk == "HIGH" else 0.81
 
         # Dynamically generate scaled flood polygons for all basins
         zones = []
         geojson_features = []
 
-        for b in BASIN_REGIONS:
+        for index, b in enumerate(BASIN_REGIONS):
             scaled_coords = self._scale_polygon(b["base_polygon"], b["center"], scale_factor)
-            basin_area = round(area * (b["base_discharge"] / 1200.0), 1)
+            basin_area = round(area * zone_shares[index], 1)
             basin_discharge = round(b["base_discharge"] * (1.0 + (rainfall / 180.0) * 0.7), 1)
 
             # Zone probability slightly adjusted by basin specific discharge capacity
-            basin_prob = min(0.98, max(0.12, round(prob * (b["base_discharge"] / 1300.0), 2)))
+            basin_prob = min(max_zone_probability, max(min_zone_probability, round(prob * (1.0 + (index - 1.5) * 0.06), 2)))
             basin_level = "CRITICAL" if basin_prob > 0.80 else "HIGH" if basin_prob > 0.55 else "MODERATE" if basin_prob > 0.25 else "LOW"
 
             zone_dict = {
@@ -254,6 +281,7 @@ class FloodEngine:
             "probability": round(prob, 2),
             "areaKm2": area,
             "risk": risk,
+            "imd": imd_info,
             "zones": zones,
             "geojson": geojson,
             "scale_factor": round(scale_factor, 2),
