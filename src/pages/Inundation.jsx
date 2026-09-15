@@ -93,7 +93,7 @@ export default function Inundation() {
                   <Mountain className="w-3.5 h-3.5 text-slate-500 ml-3"/> terrain
                 </div>
               </div>
-              <MapView height={620} showInfrastructure showStations={false} showStates={false} simulation={result ? { probability: result.probability, area: result.areaKm2 } : null}/>
+              <MapView height={620} showInfrastructure showStations={false} showStates={false} simulation={result}/>
             </div>
           </div>
         </div>

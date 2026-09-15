@@ -38,7 +38,19 @@ export default function Rainfall() {
       await new Promise(r => setTimeout(r, 450));
       setStep(i + 1);
     }
-    const res = await api.runRainfallPrediction();
+    const avgR = stations.length ? stations.reduce((a, s) => a + s.rain24, 0) / stations.length : 87.4;
+    const maxR = stations.length ? Math.max(...stations.map(s => s.rain24)) : 145;
+    const avgHumidity = stations.length && stations[0].humidity ? stations.reduce((a, s) => a + (s.humidity || 75), 0) / stations.length : 75;
+    const avgTemp = stations.length ? stations.reduce((a, s) => a + (s.temp || 28), 0) / stations.length : 28;
+    const res = await api.runRainfallPrediction({
+      rainfall_mm: parseFloat(avgR.toFixed(1)),
+      max_station_rainfall: parseFloat(maxR.toFixed(1)),
+      humidity: parseFloat(avgHumidity.toFixed(1)),
+      temperature_c: parseFloat(avgTemp.toFixed(1)),
+      pressure_hpa: stations[0]?.pressure || 1005,
+      month: new Date().getMonth() + 1,
+      station_count: stations.length,
+    });
     setResult(res); setRunning(false);
   };
 

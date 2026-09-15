@@ -3,10 +3,13 @@ import { Circle } from 'lucide-react';
 
 const statusMap = {
   CONNECTED: { color: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+  LIVE: { color: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
   READY: { color: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+  MODEL: { color: 'bg-sky-500', text: 'text-sky-700', bg: 'bg-sky-50' },
   DELAYED: { color: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50' },
   PARTIAL: { color: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50' },
   OFFLINE: { color: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50' },
+  'CONFIGURATION REQUIRED': { color: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50' },
   DEMO: { color: 'bg-sky-500', text: 'text-sky-700', bg: 'bg-sky-50' },
 };
 

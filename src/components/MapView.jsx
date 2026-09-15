@@ -40,7 +40,7 @@ export default function MapView({
 }) {
   const mapRef = useRef();
   const stationsData = liveStations || STATIONS;
-  const zonesData = liveZones || INUNDATION_ZONES;
+  const zonesData = (simulation && simulation.zones) ? simulation.zones : (liveZones || INUNDATION_ZONES);
 
   return (
     <div className={`relative w-full rounded-lg overflow-hidden border border-slate-200 ${className}`} style={{ height }}>
@@ -95,14 +95,7 @@ export default function MapView({
                     </Popup>
                   </Polygon>
                 ))}
-                {simulation && (
-                  <CircleMarker center={[22.57, 88.36]} radius={20 + simulation.probability * 40}
-                    pathOptions={{ color: '#0284c7', fillColor: '#38bdf8', fillOpacity: 0.35, weight: 2, dashArray: '3 3' }}>
-                    <Tooltip permanent direction="top">
-                      <div className="text-xs font-semibold">Simulated: {simulation.areaKm2 || simulation.area} km²</div>
-                    </Tooltip>
-                  </CircleMarker>
-                )}
+
               </LayerGroup>
             </LayersControl.Overlay>
           )}
@@ -158,8 +151,12 @@ export default function MapView({
         </div>
       </div>
 
-      <div className="absolute top-3 left-3 z-[400] bg-emerald-50/95 backdrop-blur border border-emerald-200 rounded-md px-2.5 py-1 text-[10px] font-semibold text-emerald-700 tracking-wider">
-        LIVE GIS TELEMETRY • ACTIVE MONITORING
+      <div className={`absolute top-3 left-3 z-[400] backdrop-blur border rounded-md px-2.5 py-1 text-[10px] font-semibold tracking-wider ${
+        simulation
+          ? 'bg-sky-50/95 border-sky-200 text-sky-700'
+          : 'bg-emerald-50/95 border-emerald-200 text-emerald-700'
+      }`}>
+        {simulation ? `SIMULATED • ${Math.round((simulation.probability||0)*100)}% • ${simulation.areaKm2||0} km²` : 'LIVE GIS TELEMETRY • ACTIVE MONITORING'}
       </div>
     </div>
   );
