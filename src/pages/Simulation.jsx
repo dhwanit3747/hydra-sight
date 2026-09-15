@@ -4,7 +4,7 @@ import ScenarioSlider from '../components/ScenarioSlider';
 import MapView from '../components/MapView';
 import { DemoBadge, RiskBadge } from '../components/DemoBadge';
 import { api } from '../services/api';
-import { Play, RotateCcw, GitCompare, Zap, CloudRain, MapPin } from 'lucide-react';
+import { Play, RefreshCw, GitCompare, Zap, CloudRain, MapPin } from 'lucide-react';
 import { getIMDRainfallCategory, IMD_RAINFALL_THRESHOLDS } from '../utils/imdStandard';
 
 const BASELINE = { probability: 0.42, area: 128, risk: 'MODERATE' };
@@ -31,6 +31,7 @@ export default function Simulation() {
   const [selectedArea, setSelectedArea] = useState('all');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
 
   const imdCat = getIMDRainfallCategory(rainfall);
 
@@ -56,8 +57,15 @@ export default function Simulation() {
 
   const run = async (areaId = selectedArea) => {
     setRunning(true);
-    const res = await api.runScenario({ rainfall, duration, soil, drainage, area: areaId });
-    setResult(filterResult(res, areaId)); setRunning(false);
+    setError('');
+    try {
+      const res = await api.runScenario({ rainfall, duration, soil, drainage, area: areaId });
+      setResult(filterResult(res, areaId));
+    } catch (err) {
+      setError('Simulation could not be completed. Check the backend connection and try again.');
+    } finally {
+      setRunning(false);
+    }
   };
 
   const selectArea = async (areaId) => {
@@ -65,23 +73,30 @@ export default function Simulation() {
     await run(areaId);
   };
 
-  const applyPreset = async (preset) => {
+  const applyPreset = async (preset, areaId = selectedArea) => {
     setActiveScenario(preset.id);
     setRainfall(preset.rainfall);
     setDuration(preset.duration);
     setSoil(preset.soil);
     setDrainage(preset.drainage);
     setRunning(true);
-    const res = await api.runScenario({ ...preset, area: selectedArea });
-    setResult(filterResult(res, selectedArea));
-    setRunning(false);
+    setError('');
+    try {
+      const res = await api.runScenario({ ...preset, area: areaId });
+      setResult(filterResult(res, areaId));
+    } catch (err) {
+      setError('Simulation could not be completed. Check the backend connection and try again.');
+    } finally {
+      setRunning(false);
+    }
   };
 
-  const reset = () => {
+  const refresh = () => {
     const preset = SCENARIO_PRESETS[1];
     setActiveScenario(preset.id);
     setSelectedArea('all');
-    setRainfall(preset.rainfall); setDuration(preset.duration); setSoil(preset.soil); setDrainage(preset.drainage); setResult(null);
+    setRainfall(preset.rainfall); setDuration(preset.duration); setSoil(preset.soil); setDrainage(preset.drainage);
+    applyPreset(preset, 'all');
   };
 
   const compareRow = (label, current, simulated, unit = '') => (
@@ -166,10 +181,11 @@ export default function Simulation() {
                 <Button onClick={run} disabled={running} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white h-11">
                   <Play className="w-4 h-4 mr-2"/> {running ? 'Simulating…' : 'RUN SCENARIO'}
                 </Button>
-                <Button onClick={reset} variant="outline" className="h-11">
-                  <RotateCcw className="w-4 h-4"/>
+                <Button onClick={refresh} disabled={running} variant="outline" className="h-11" title="Reset to Moderate and refresh simulation" aria-label="Reset to Moderate and refresh simulation">
+                  <RefreshCw className="w-4 h-4"/>
                 </Button>
               </div>
+              {error && <div role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>}
             </div>
 
             {/* IMD Standard Reference Panel */}

@@ -156,17 +156,22 @@ export const api = {
   },
 
   async runInundationPrediction(input) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       const res = await fetch(`${BACKEND_URL}/api/inundation/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input || {}),
+        signal: controller.signal,
       });
       if (res.ok) {
         return await res.json();
       }
     } catch (err) {
       console.warn('Backend inundation prediction fallback:', err);
+    } finally {
+      clearTimeout(timeout);
     }
     const base = Number(input?.rainfall ?? 150);
     const duration = Number(input?.duration ?? 12);
